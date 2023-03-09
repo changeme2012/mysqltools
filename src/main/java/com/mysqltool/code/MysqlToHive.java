@@ -6,13 +6,11 @@ import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.BeanListHandler;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * ClassName:NullTransformer
@@ -33,13 +31,33 @@ public class MysqlToHive {
         String database = properties.getProperty("database");
         String prefixes = properties.getProperty("Prefixes");
         String suffixes = properties.getProperty("suffixes");
-        String partitionFields = properties.getProperty("partition_fields");
+        String partitionword = properties.getProperty("partitionword");
         String delimited = properties.getProperty("delimited");
         String nullformat = properties.getProperty("nullformat");
         String location = properties.getProperty("location");
         String tablefilter = properties.getProperty("tablefilter");
 
         Connection connection;
+
+
+
+        //去重表名
+        HashSet<String> tableNameSet = new HashSet<>();
+
+
+        //获取过滤表信息 创建集合
+        ArrayList<String> tableFliterList = new ArrayList<>();
+        if (tablefilter != null) {
+            String[] filter = tablefilter.split(",");
+            for (String table : filter) {
+                tableFliterList.add(table);
+            }
+        }
+
+        //创建columnname,columntype,comment拼接的MAP
+        HashMap<String, String> tableMid = new HashMap<>();
+
+
         //TODO 2 建立连接并把查询结果放收TableBean的LIST里
         try {
 
@@ -49,8 +67,6 @@ public class MysqlToHive {
 
             //获取gmall库下所有表信息
             String sql = "select * from information_schema.COLUMNS where TABLE_SCHEMA = ? ";
-
-
 
             //DButils封装自动封装到LIST
             List<TableBean> gmall = queryRunner.query(connection, sql,new BeanListHandler<>(TableBean.class), "gmall");
@@ -92,18 +108,7 @@ public class MysqlToHive {
 
             */
 
-            //TODO 3 拿到过虑表信息 并放入到list方便后面过滤
-            ArrayList<String> tableList = new ArrayList<>();
-            if (tablefilter != null) {
-                String[] filter = tablefilter.split(",");
-                for (String table : filter) {
-                    tableList.add(table);
-                }
-            }
-
-
-
-            //TODO 4 拿到信息，然后拼接
+            //TODO 4 拿到信息，然后拼接成中间字段放入(tablemid)
             Iterator<TableBean> iterator = gmall.iterator();
 
             while (iterator.hasNext()){
@@ -114,31 +119,58 @@ public class MysqlToHive {
                 String comment = tableBean.getComment();
                 String tablename = tableBean.getTablename();
 
+                //放入set去重表名
+                tableNameSet.add(tablename);
+
                 //按过滤名单拼接表
-                if (tablename !=null && tableList.contains(tablename)) {
+                if (tablename !=null && tableFliterList.contains(tablename)) {
 
                     //TODO  表名拼接 这里出问题了，一个表名对应对个表信息，没办法唯一
                 /*DROP TABLE IF EXISTS ods_activity_info_full
                 CREATE EXTERNAL TABLE ods_activity_info_full*/
-                    String table = prefixes + tablename + suffixes;
-
+                    String table = columnname +"\t"+ columntype + "\t" + comment;
+                    //按表名存放拼接好的字段
+                    tableMid.put(tablename,table);
 
                 }
                 //如果tablefilter为null则不过滤，拼接全部表
                 else {
-
-
+                    String table = columnname +"\t"+ columntype + "\t" + comment;
                 }
 
-
             }
-
 
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
 
-        //TODO 3 关闭连接
+        // TODO 3 开始拼接
+            //拼接表头 activity_info 变  ods_activity_info_full
+        HashMap<String, String> tableHeader = new HashMap<>();
+        for (String name : tableNameSet) {
+            String tableStart = "DROP TABLE IF EXISTS"+ prefixes+name+suffixes+";\n"+
+                    "CREATE EXTERNAL TABLE "+prefixes+name+suffixes+"\n(";
+            tableHeader.put(name,tableStart);
+        }
+
+
+        //拼接表尾
+        String tableEnd = ") \n" +
+                "PARTITIONED BY ("+partitionword+ "STRING)\n" +
+                "ROW FORMAT DELIMITED FIELDS TERMINATED BY "+delimited +"\n"+
+                "NULL DEFINED AS"+ nullformat +"\n" +
+                "LOCATION"+location;
+
+        //全表拼接 把tableHeader，tableMid，tableEnd拼接起来
+
+
+        //TODO 文件输出流到export目录下
+        FileOutputStream fileOutputStream = new FileOutputStream("export");
+
+
+
+        //TODO 4 关闭连接
+
         DruidJDBCUtils.close(null,null,connection);
 
 
