@@ -69,7 +69,7 @@ public class MysqlToHive {
             String sql = "select * from information_schema.COLUMNS where TABLE_SCHEMA = ? ";
 
             //DButils封装自动封装到LIST
-            List<TableBean> gmall = queryRunner.query(connection, sql,new BeanListHandler<>(TableBean.class), "gmall");
+            List<TableBean> gmall = queryRunner.query(connection, sql,new BeanListHandler<>(TableBean.class), database);
 
             //TODO 目标把库里所有表拼接成多段建表语句，并保存到export路径下
             /*DROP TABLE IF EXISTS ods_activity_info_full;
