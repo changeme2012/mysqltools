@@ -9,6 +9,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -36,8 +37,7 @@ public class MysqlToHive {
         String delimited = properties.getProperty("delimited");
         String nullformat = properties.getProperty("nullformat");
         String location = properties.getProperty("location");
-
-
+        String tablefilter = properties.getProperty("tablefilter");
 
         Connection connection;
         //TODO 2 建立连接并把查询结果放收TableBean的LIST里
@@ -49,6 +49,8 @@ public class MysqlToHive {
 
             //获取gmall库下所有表信息
             String sql = "select * from information_schema.COLUMNS where TABLE_SCHEMA = ? ";
+
+
 
             //DButils封装自动封装到LIST
             List<TableBean> gmall = queryRunner.query(connection, sql,new BeanListHandler<>(TableBean.class), "gmall");
@@ -90,8 +92,18 @@ public class MysqlToHive {
 
             */
 
+            //TODO 3 拿到过虑表信息 并放入到list方便后面过滤
+            ArrayList<String> tableList = new ArrayList<>();
+            if (tablefilter != null) {
+                String[] filter = tablefilter.split(",");
+                for (String table : filter) {
+                    tableList.add(table);
+                }
+            }
 
-            //TODO 拿到信息，然后拼接
+
+
+            //TODO 4 拿到信息，然后拼接
             Iterator<TableBean> iterator = gmall.iterator();
 
             while (iterator.hasNext()){
@@ -102,13 +114,21 @@ public class MysqlToHive {
                 String comment = tableBean.getComment();
                 String tablename = tableBean.getTablename();
 
-                //TODO  表名拼接 这里出问题了，一个表名对应对个表信息，没办法唯一
+                //按过滤名单拼接表
+                if (tablename !=null && tableList.contains(tablename)) {
+
+                    //TODO  表名拼接 这里出问题了，一个表名对应对个表信息，没办法唯一
                 /*DROP TABLE IF EXISTS ods_activity_info_full
                 CREATE EXTERNAL TABLE ods_activity_info_full*/
-                String table = prefixes + tablename + suffixes;
+                    String table = prefixes + tablename + suffixes;
 
 
+                }
+                //如果tablefilter为null则不过滤，拼接全部表
+                else {
 
+
+                }
 
 
             }
