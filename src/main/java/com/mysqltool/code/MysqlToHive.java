@@ -1,12 +1,12 @@
 package com.mysqltool.code;
 
+import com.mysqltool.bean.ColumnType;
 import com.mysqltool.bean.TableBean;
 import com.mysqltool.utils.DruidJDBCUtils;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.BeanListHandler;
 
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -58,6 +58,7 @@ public class MysqlToHive {
         HashMap<String, String> tableMid = new HashMap<>();
 
 
+
         //TODO 2 建立连接并把查询结果放收TableBean的LIST里
         try {
 
@@ -66,7 +67,9 @@ public class MysqlToHive {
             QueryRunner queryRunner = new QueryRunner();
 
             //获取gmall库下所有表信息
-            String sql = "select * from information_schema.COLUMNS where TABLE_SCHEMA = ? ";
+            String sql = "SELECT  table_name,column_name,column_type,column_comment \n" +
+                    "FROM information_schema.COLUMNS \n" +
+                    "WHERE TABLE_SCHEMA = ? ";
 
             //DButils封装自动封装到LIST
             List<TableBean> gmall = queryRunner.query(connection, sql,new BeanListHandler<>(TableBean.class), database);
@@ -114,28 +117,31 @@ public class MysqlToHive {
             while (iterator.hasNext()){
                 TableBean tableBean = iterator.next();
 
-                String columnname = tableBean.getColumnname();
-                String columntype = tableBean.getColumntype();
-                String comment = tableBean.getComment();
-                String tablename = tableBean.getTablename();
+                String columnname = tableBean.getColumn_name();
+                String columntype = tableBean.getColumn_type();
+                String comment = tableBean.getColumn_comment();
+                String tablename = tableBean.getTable_name();
 
-                //放入set去重表名
-                tableNameSet.add(tablename);
+
+                String columeType = ColumnType.getColumeType(columntype);
+
 
                 //按过滤名单拼接表
                 if (tablename !=null && tableFliterList.contains(tablename)) {
-
+                    //放入set去重表名
+                    tableNameSet.add(tablename);
                     //TODO  表名拼接 这里出问题了，一个表名对应对个表信息，没办法唯一
                 /*DROP TABLE IF EXISTS ods_activity_info_full
                 CREATE EXTERNAL TABLE ods_activity_info_full*/
-                    String table = columnname +"\t"+ columntype + "\t" + comment;
+                    String table ="`" + columnname+"`" +"\t"+ columeType + "\t" + comment ;
+
                     //按表名存放拼接好的字段
                     tableMid.put(tablename,table);
 
                 }
                 //如果tablefilter为null则不过滤，拼接全部表
                 else {
-                    String table = columnname +"\t"+ columntype + "\t" + comment;
+                    String table ="`"+ columnname+"`" +"\t"+ columeType + "\t" + comment;
                 }
 
             }
@@ -148,7 +154,7 @@ public class MysqlToHive {
             //拼接表头 activity_info 变  ods_activity_info_full
         HashMap<String, String> tableHeader = new HashMap<>();
         for (String name : tableNameSet) {
-            String tableStart = "DROP TABLE IF EXISTS"+ prefixes+name+suffixes+";\n"+
+            String tableStart = "DROP TABLE IF EXISTS "+ prefixes+name+suffixes+";\n"+
                     "CREATE EXTERNAL TABLE "+prefixes+name+suffixes+"\n(";
             tableHeader.put(name,tableStart);
         }
@@ -156,16 +162,28 @@ public class MysqlToHive {
 
         //拼接表尾
         String tableEnd = ") \n" +
-                "PARTITIONED BY ("+partitionword+ "STRING)\n" +
+                "PARTITIONED BY (dt="+ partitionword+ "STRING)\n" +
                 "ROW FORMAT DELIMITED FIELDS TERMINATED BY "+delimited +"\n"+
-                "NULL DEFINED AS"+ nullformat +"\n" +
-                "LOCATION"+location;
+                "NULL DEFINED AS "+ nullformat  +
+                "LOCATION "+location;
 
         //全表拼接 把tableHeader，tableMid，tableEnd拼接起来
+//        System.out.println(tableMid.get("activity_rule"));
+
+        for (String header : tableHeader.keySet()) {
+            if (tableMid.containsKey(header)){
+                System.out.println((tableHeader.get(header)+ "\n"+ tableMid.get(header) +"\n"+tableEnd +"\n"));
+            }
+        }
+
+/*        for (String key : tableHeader.keySet()) {
+            System.out.println(tableHeader.get(key));
+        }*/
+
 
 
         //TODO 文件输出流到export目录下
-        FileOutputStream fileOutputStream = new FileOutputStream("export");
+//        FileOutputStream fileOutputStream = new FileOutputStream("export");
 
 
 

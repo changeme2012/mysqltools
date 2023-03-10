@@ -10,53 +10,63 @@ package com.mysqltool.bean;
  */
 public class TableBean {
     private String databases;
-    private String tablename;
-    private String columnname;
-    private String columntype;
-    private String comment;
+    private String table_name;
+    private String column_name;
+    private String column_type;
+    private String column_comment;
+
 
     public TableBean() {
     }
 
-    public String getTablename() {
-        return tablename;
+    public String getDatabases() {
+        return databases;
     }
 
-    public void setTablename(String tablename) {
-        this.tablename = tablename;
+    public void setDatabases(String databases) {
+        this.databases = databases;
     }
 
-    public String getColumnname() {
-        return columnname;
+    public String getTable_name() {
+        return table_name;
     }
 
-    public void setColumnname(String columnname) {
-        this.columnname = columnname;
+    public void setTable_name(String table_name) {
+        this.table_name = table_name;
     }
 
-    public String getColumntype() {
-        return columntype;
+    public String getColumn_name() {
+        return column_name;
     }
 
-    public void setColumntype(String columntype) {
-        this.columntype = columntype;
+    public void setColumn_name(String column_name) {
+        this.column_name = column_name;
     }
 
-    public String getComment() {
-        return comment;
+    public String getColumn_type() {
+        return column_type;
     }
 
-    public void setComment(String comment) {
-        this.comment = comment;
+    public void setColumn_type(String column_type) {
+        this.column_type = column_type;
+    }
+
+    public String getColumn_comment() {
+        return column_comment;
+    }
+
+    public void setColumn_comment(String column_comment) {
+        this.column_comment = column_comment;
     }
 
     @Override
     public String toString() {
         return "TableBean{" +
-                "tablename='" + tablename + '\'' +
-                ", columnname='" + columnname + '\'' +
-                ", columntype='" + columntype + '\'' +
-                ", comment='" + comment + '\'' +
+                "databases='" + databases + '\'' +
+                ", table_name='" + table_name + '\'' +
+                ", column_name='" + column_name + '\'' +
+                ", column_type='" + column_type + '\'' +
+                ", column_comment='" + column_comment + '\'' +
                 '}';
     }
 }

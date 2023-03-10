@@ -24,7 +24,7 @@ public class DruidJDBCUtils {
         static {
             try {
                 Properties properties = new Properties();
-                properties.load(new FileInputStream("conf\\mysql.properties"));
+                properties.load(new FileInputStream("conf\\druid.properties"));
                 ds=DruidDataSourceFactory.createDataSource(properties);
             } catch (Exception e) {
                 throw new RuntimeException(e);
